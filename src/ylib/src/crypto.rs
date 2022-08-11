@@ -27,6 +27,7 @@ use orion::aead::SecretKey;
 /// # Arguments
 /// - `password` - The password used to encrypt/decrypt the data
 /// - `salt` - The salt used to strengthen the encryption
+#[allow(dead_code)]
 fn get_key_from_password(password: &str, salt: &[u8]) -> Result<SecretKey> {
     use orion::hazardous::stream::chacha20::CHACHA_KEYSIZE;
     use orion::kdf::{derive_key, Password, Salt};
@@ -55,6 +56,7 @@ fn get_key_from_password(password: &str, salt: &[u8]) -> Result<SecretKey> {
 /// 
 /// ## Returns
 /// The ciphertext
+#[allow(dead_code)]
 pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result<Vec<u8>> {
     use orion::hazardous::{
         aead::xchacha20poly1305::{seal, Nonce, SecretKey as XSecretKey},
@@ -101,6 +103,7 @@ pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result
 /// 
 /// ## Returns
 /// The plaintext as bytes
+#[allow(dead_code)]
 pub fn decrypt(ciphertext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result<Vec<u8>> {
     use orion::aead::open;
     use orion::hazardous::stream::xchacha20::XCHACHA_NONCESIZE;
