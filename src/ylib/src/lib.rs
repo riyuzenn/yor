@@ -16,3 +16,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
 */
+
+use pickledb::{
+    PickleDb,
+    PickleDbDumpPolicy,
+    SerializationMethod
+};
+use std::path::Path;
+mod crypto;
+
+pub fn create_db(path: &str) {
+    let db = PickleDb::new(
+        Path::new(path), 
+        PickleDbDumpPolicy::AutoDump,
+        SerializationMethod::Json
+    );
+}
+
+pub fn load_db(path: &Path) -> PickleDb {
+    if !path.exists() {
+        create_db(&path.to_str().unwrap());
+    }
+    PickleDb::load_json(
+        path, 
+        PickleDbDumpPolicy::AutoDump
+    ).unwrap()
+}
+
