@@ -22,7 +22,9 @@ use pickledb::{
     PickleDbDumpPolicy,
     SerializationMethod
 };
+use dirs;
 use std::path::Path;
+use std::fs;
 mod crypto;
 
 pub fn create_db(path: &str) {
@@ -43,3 +45,9 @@ pub fn load_db(path: &Path) -> PickleDb {
     ).unwrap()
 }
 
+pub fn initialize_env() {
+    let mut env = dirs::home_dir().unwrap();
+    env.push(".yor");
+    fs::create_dir_all(env).unwrap();
+
+}
