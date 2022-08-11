@@ -1,7 +1,7 @@
 /*
  *
  *  Copyright (C) 2022-present riyuzenn
- *  
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
@@ -21,6 +21,12 @@ use anyhow::{Result, Context, bail, ensure};
 use getrandom;
 use orion::aead::SecretKey;
 
+#[allow(dead_code)]
+pub fn nonce() -> Result<[u8; 24]> {
+    let mut result = [0u8; 24];
+    getrandom::getrandom(&mut result);
+    Ok(result)
+}
 
 /// Get a SecretKey that will be used to encrypt/decrypt the data
 /// 
@@ -57,7 +63,7 @@ fn get_key_from_password(password: &str, salt: &[u8]) -> Result<SecretKey> {
 /// ## Returns
 /// The ciphertext
 #[allow(dead_code)]
-pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result<Vec<u8>> {
+pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>, nonce: impl AsRef<[u8]>) -> Result<Vec<u8>> {
     use orion::hazardous::{
         aead::xchacha20poly1305::{seal, Nonce, SecretKey as XSecretKey},
         mac::poly1305::POLY1305_OUTSIZE,
@@ -66,16 +72,14 @@ pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result
     // Fetch param as refs
     let plaintext = plaintext.as_ref();
     let password = password.as_ref();
-    let mut nonce = [0u8; 24];
-    getrandom::getrandom(&mut nonce).unwrap();
-
+    let nonce = nonce.as_ref();
     // Get high-level API key
-    let key = get_key_from_password(password, &nonce)?;
+    let key = get_key_from_password(password, nonce)?;
     // Convert high-level API key to low-level API key
     let key = XSecretKey::from_slice(key.unprotected_as_bytes()).with_context(|| "Key is invalid")?;
 
     // Create a Nonce struct from the generated nonce
-    let nonce = Nonce::from_slice(&nonce).with_context(|| "Nonce is too short")?;
+    let nonce = Nonce::from_slice(nonce).with_context(|| "Nonce is too short")?;
 
     // Get the output length
     let output_len = match plaintext.len().checked_add(XCHACHA_NONCESIZE + POLY1305_OUTSIZE) {
