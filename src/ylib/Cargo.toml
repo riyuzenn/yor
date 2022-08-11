@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.61"
 dirs = "4.0.0"
+getrandom = "0.2.7"
 orion = "0.17.1"
 pickledb = "0.5.1"
