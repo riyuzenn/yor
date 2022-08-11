@@ -1,5 +1,2 @@
 [workspace]
-members = [
-  "yor",
-  "yorl"
-]
+members = ["src/*"]
