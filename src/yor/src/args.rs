@@ -20,12 +20,13 @@
 use clap::{
     Args,
     Parser,
-    Subcommand    
+    Subcommand
 };
 
 
 #[derive(Debug, Parser)]
 #[clap(name = "Yor", version, about = "Secure personal Key-Value storage system")]
+#[clap(propagate_version = true)]
 pub struct YorParser {
     #[clap(subcommand)]
     pub command: Op,
@@ -33,15 +34,17 @@ pub struct YorParser {
 
 #[derive(Debug, Subcommand)]
 pub enum Op {
-    #[clap(about = "Get the version and check for available updates")]
-    Version,
     #[clap(about = "Information about the app.")]
     About,
+    #[clap(about = "List all database avaialable")]
+    ListDb,
     Set(SetCommand),
     Get(GetCommand),
+    Rem(RemCommand),
     SetDb(SetDbCommand),
     Create(CreateCommand),
     Delete(DeleteCommand),
+    
 }
 
 #[derive(Debug, Args)]
@@ -49,12 +52,16 @@ pub enum Op {
 pub struct SetCommand {
     pub key: String,
     pub value: String,
+    #[clap(short, long)]
+    pub no_password: bool
 }
 
 #[derive(Debug, Args)]
 #[clap(about = "Get the value of a given key")]
 pub struct GetCommand {
-    pub key: String
+    pub key: Option<String>,
+    #[clap(short, long)]
+    pub keys: bool
 }
 
 #[derive(Debug, Args)]
@@ -62,6 +69,15 @@ pub struct GetCommand {
 pub struct SetDbCommand {
     // The name of the database
     pub name: String,
+    
+}
+
+#[derive(Debug, Args)]
+#[clap(about = "Remove a key from the database")]
+pub struct RemCommand {
+    // The key to be remove
+    pub key: String,
+    
 }
 
 #[derive(Debug, Args)]
