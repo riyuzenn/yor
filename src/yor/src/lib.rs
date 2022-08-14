@@ -165,17 +165,23 @@ pub fn load_db(path: &Path) -> PickleDb {
     ).unwrap()
 }
 
+fn init_config_db() {
+    let env = dirs::home_dir().unwrap()
+        .as_path().join(".yor");
+
+    if !env.join("config").as_path().exists() {
+        load_db(env.join("config").as_path()).set("db_name", &String::from("default")).unwrap();
+    }
+}
+
 pub fn initialize_env() -> Result<()> {
     let home = dirs::home_dir().unwrap();
     let env = home.as_path().join(".yor");
     let db_path = env.as_path().join("db");
 
-    if !env.join("config").as_path().exists() {
-        load_db(env.join("config").as_path()).set("db_name", &String::from("default")).unwrap();
-    }
-
     fs::create_dir_all(env).unwrap();
     fs::create_dir_all(db_path).unwrap();
+    init_config_db();
 
     Ok(())
 }
