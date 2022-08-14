@@ -18,41 +18,40 @@
 */
 
 use std::fs;
-use ylib;
 use dialoguer::Confirm;
 use clap::Parser;
 use colored::Colorize;
 mod args;
-
+mod lib;
 
 fn main() {
-    ylib::initialize_env().unwrap();
+    lib::initialize_env().unwrap();
     let a: args::YorParser = args::YorParser::parse();
     match a.command {
         args::Op::Get(v) => {
-            let conf = ylib::get_config_data();
+            let conf = lib::get_config_data();
             let db_name = conf.get::<String>("db_name").unwrap();
-            let db = ylib::load_db(&ylib::get_db_path(db_name.as_str()));
+            let db = lib::load_db(&lib::get_db_path(db_name.as_str()));
             if v.keys {
                 println!("{:?}", db.get_all());
                 std::process::exit(1);
             }
             let key = v.key.unwrap_or_else(|| { println!("No key prompted"); std::process::exit(1); });
-            let data = ylib::get_item(db_name, key);
+            let data = lib::get_item(db_name, key);
             println!("{}", data.truecolor(138, 172, 171));
         }
         args::Op::Set(v) => {
-            let db = ylib::get_config_data();
+            let db = lib::get_config_data();
             let db_name = db.get::<String>("db_name").unwrap();
             let mut pwd = db.get::<String>("db_key").unwrap_or(String::from(""));
             if pwd  == "" && !v.no_password {
-                pwd = ylib::get_password();
+                pwd = lib::get_password("[yor] password to be set: ");
             }
-            ylib::upsert_item(db_name, pwd, v.key, v.value);
+            lib::upsert_item(db_name, pwd, v.key, v.value);
         }
         args::Op::SetDb(v) => {
-            let mut db = ylib::get_config_data();
-            let path = ylib::get_db_path(v.name.as_str());
+            let mut db = lib::get_config_data();
+            let path = lib::get_db_path(v.name.as_str());
          
             if !path.exists() {
                 println!("Database: {} not found, perhaps it doesn't exist at all?", v.name.truecolor(172, 138, 140));
@@ -62,12 +61,12 @@ fn main() {
             println!("Successfully set the database to: {}", v.name.truecolor(172, 169, 138));
         },
         args::Op::Rem(v) => {
-            let db = ylib::get_config_data();
+            let db = lib::get_config_data();
             let db_name = db.get::<String>("db_name").unwrap();
-            ylib::rem_item(&db_name, &v.key).unwrap();
+            lib::rem_item(&db_name, &v.key).unwrap();
         }
         args::Op::Delete(v) => {
-            let path = ylib::get_db_path(v.name.as_str());
+            let path = lib::get_db_path(v.name.as_str());
 
             if !path.exists() {
                 println!("Database {} doesn't exist at all", v.name.truecolor(172, 138, 140));
@@ -87,15 +86,15 @@ fn main() {
             
         },
         args::Op::Create(v) => {
-            let path = ylib::get_db_path(v.name.as_str());
+            let path = lib::get_db_path(v.name.as_str());
             if path.exists() {
                 println!("It looks like database: {} is already created.", v.name.truecolor(172, 138, 140));
                 std::process::exit(1);
             }
-            ylib::create_db(path.to_str().unwrap());
+            lib::create_db(path.to_str().unwrap());
         },
         args::Op::ListDb => {
-            ylib::print_all_db();
+            lib::print_all_db();
         }
         args::Op::About => about()
         
