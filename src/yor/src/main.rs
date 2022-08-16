@@ -31,7 +31,7 @@ fn main() {
         args::Op::Get(v) => {
             let conf = lib::get_config_data();
             let db_name = conf.get::<String>("db_name").unwrap();
-            let data = lib::get_item(db_name, v.key.unwrap());
+            let data = lib::get_item(db_name, v.key);
             println!("{}", data.truecolor(138, 172, 171));
         }
         args::Op::Set(v) => {
