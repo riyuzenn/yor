@@ -38,6 +38,8 @@ pub enum Op {
     About,
     #[clap(about = "List all database avaialable")]
     ListDb,
+    #[clap(about = "List all keys avaialable from the database")]
+    ListKeys,
     Set(SetCommand),
     Get(GetCommand),
     Rem(RemCommand),
