@@ -31,13 +31,7 @@ fn main() {
         args::Op::Get(v) => {
             let conf = lib::get_config_data();
             let db_name = conf.get::<String>("db_name").unwrap();
-            let db = lib::load_db(&lib::get_db_path(db_name.as_str()));
-            if v.keys {
-                println!("{:?}", db.get_all());
-                std::process::exit(1);
-            }
-            let key = v.key.unwrap_or_else(|| { println!("No key prompted"); std::process::exit(1); });
-            let data = lib::get_item(db_name, key);
+            let data = lib::get_item(db_name, v.key.unwrap());
             println!("{}", data.truecolor(138, 172, 171));
         }
         args::Op::Set(v) => {
