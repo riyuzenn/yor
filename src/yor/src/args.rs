@@ -61,9 +61,7 @@ pub struct SetCommand {
 #[derive(Debug, Args)]
 #[clap(about = "Get the value of a given key")]
 pub struct GetCommand {
-    pub key: Option<String>,
-    #[clap(short, long)]
-    pub keys: bool
+    pub key: String,
 }
 
 #[derive(Debug, Args)]
