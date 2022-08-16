@@ -212,12 +212,28 @@ pub fn get_db_path(name: &str) -> PathBuf {
 pub fn print_all_db() {
     let home = dirs::home_dir().unwrap();
     let db_path = home.as_path().join(".yor").join("db");
+    let conf = get_config_data();
+    let default_db_name = conf.get::<String>("db_name").unwrap();
 
     if let Ok(entries) = fs::read_dir(db_path) {
         for entry in entries {
-            if let Ok(entry) = entry {
-                // Here, `entry` is a `DirEntry`.
-                println!("{}", entry.file_name().to_str().unwrap());
+            if let Ok(entry) = entry {                
+                
+                let mut db_name = String::from(
+                    entry.file_name()
+                        .to_str()
+                        .unwrap()
+                );
+                if db_name == default_db_name {
+                    db_name.push_str(
+                        &" (current)".truecolor(164, 141, 110)
+                        .to_string()
+                    );
+                    
+                    // db_name += &" (current)".truecolor(164, 141, 110).to_string();
+                    
+                }
+                println!("{}", db_name.truecolor(172, 138, 172));
                 
             }
         }
