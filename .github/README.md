@@ -16,7 +16,7 @@ yor set secret key --no-password
 yor get hello 
 
 # get the value of all keys
-yor get --keys
+yor list-keys
 ```
 
 ## Features
