@@ -277,11 +277,21 @@ pub fn get_item(db_name: String, key: String) -> String {
     }
     match raw {
         YorData::Bytes(d) => {
-            let password = get_password("[yor] password for the key: ");
+            let mut tries = 1;
+            let mut password = get_password("[yor] password for the key: ");
             let decrypted_data = decrypt(d, password);
-            if !decrypted_data.is_ok() {
+   
+            // Get the key three times, if it fails then exit
+            while !decrypted_data.is_ok() {
                 println!("{}", "Password is invalid. Pleae try again".truecolor(157, 123, 125));
-                std::process::exit(1);
+                password = get_password("[yor] password for the key: ");
+     
+                tries += 1; 
+                if tries >= 3 {
+                    println!("{}", "Woah, chill out. Are you sure the password is correct?.".truecolor(157, 123, 125));
+                    std::process::exit(1);
+                }
+
             }
             data = String::from_utf8(decrypted_data.unwrap()).unwrap();
         },
