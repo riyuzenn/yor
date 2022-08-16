@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2022-present riyuzenn
  *
- *  This program is free software: you can redistribute it and/or modify
+ *  This progr&am is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
@@ -95,7 +95,15 @@ fn main() {
         },
         args::Op::ListDb => {
             lib::print_all_db();
-        }
+        },
+        args::Op::ListKeys => {
+            let conf = lib::get_config_data();
+            let db_name = conf.get::<String>("db_name").unwrap();
+            let db = lib::load_db(&lib::get_db_path(db_name.as_str()));
+            for key in db.get_all() {
+                println!("{}", key.truecolor(172, 138, 172));
+            }    
+        },
         args::Op::About => about()
         
     }
