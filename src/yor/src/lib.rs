@@ -182,7 +182,7 @@ fn init_config_db() {
         let mut db = load_db(env.join("config").as_path());
         db.set("db_name", &String::from("default")).unwrap();
         db.set("file_env", &String::from(
-            env.join("file")
+            env.join("files")
                 .to_str()
                 .unwrap())
         ).unwrap();
@@ -193,7 +193,7 @@ pub fn initialize_env() -> Result<()> {
     let home = dirs::home_dir().unwrap();
     let env = home.as_path().join(".yor");
     let db_path = env.as_path().join("db");
-    let file_path = env.as_path().join("file");
+    let file_path = env.as_path().join("files");
 
     fs::create_dir_all(env).unwrap();
     fs::create_dir_all(db_path).unwrap();
@@ -261,7 +261,7 @@ pub fn print_all_db() {
 /// directories
 pub fn print_all_files() {
     let home = dirs::home_dir().unwrap();
-    let db_path = home.as_path().join(".yor").join("file");
+    let db_path = home.as_path().join(".yor").join("files");
 
     if let Ok(entries) = fs::read_dir(db_path) {
         for entry in entries {
