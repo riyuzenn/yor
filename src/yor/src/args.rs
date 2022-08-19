@@ -40,13 +40,15 @@ pub enum Op {
     ListDb,
     #[clap(about = "List all keys avaialable from the database")]
     ListKeys,
+    #[clap(about = "List all files avaialable from the file environment")]
+    ListFiles,
     Set(SetCommand),
     Get(GetCommand),
     Rem(RemCommand),
     SetDb(SetDbCommand),
     Create(CreateCommand),
     Delete(DeleteCommand),
-    
+    Clear(ClearCommand),
 }
 
 #[derive(Debug, Args)]
@@ -55,7 +57,9 @@ pub struct SetCommand {
     pub key: String,
     pub value: String,
     #[clap(short, long)]
-    pub no_password: bool
+    pub no_password: bool,
+    #[clap(short, long)]
+    pub r#type: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -94,4 +98,10 @@ pub struct DeleteCommand {
     // The name of the database
     pub name: String,
 
+}
+
+#[derive(Debug, Args)]
+#[clap(about = "Clear the given environment")]
+pub struct ClearCommand {
+    pub name: String,
 }

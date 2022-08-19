@@ -38,10 +38,11 @@ fn main() {
             let db = lib::get_config_data();
             let db_name = db.get::<String>("db_name").unwrap();
             let mut pwd = db.get::<String>("db_key").unwrap_or(String::from(""));
+            let r#type = v.r#type.unwrap_or("data/str".to_string());
             if pwd  == "" && !v.no_password {
                 pwd = lib::get_password("[yor] password to be set: ");
             }
-            lib::upsert_item(db_name, pwd, v.key, v.value);
+            lib::upsert_item(db_name, pwd, v.key, v.value, r#type);
         }
         args::Op::SetDb(v) => {
             let mut db = lib::get_config_data();
@@ -87,17 +88,35 @@ fn main() {
             }
             lib::create_db(path.to_str().unwrap());
         },
-        args::Op::ListDb => {
-            lib::print_all_db();
+        args::Op::Clear(v) => {
+            let env = dirs::home_dir().unwrap()
+                .as_path().join(".yor");
+
+            let dir = env.join(&v.name);
+            if !dir.exists() {
+                println!("Cannot clear environment: `{}`. Not found", v.name);
+                std::process::exit(1);
+            } 
+            // Delete & Create the directory instead of deleting all the files
+            fs::remove_dir_all(dir.clone()).unwrap();
+            fs::create_dir_all(dir).unwrap();
         },
         args::Op::ListKeys => {
             let conf = lib::get_config_data();
             let db_name = conf.get::<String>("db_name").unwrap();
             let db = lib::load_db(&lib::get_db_path(db_name.as_str()));
+
             for key in db.get_all() {
-                println!("{}", key.truecolor(172, 138, 172));
+                let db = db.get::<lib::YorData>(&key).unwrap();
+                let mut data_type = db.y_type; 
+                if data_type == "bytes" {
+                    data_type = "password protected".to_string();
+                }
+                println!("{} ({})", key.truecolor(172, 138, 172), data_type.truecolor(172, 169, 138));
             }    
         },
+        args::Op::ListDb => lib::print_all_db(),
+        args::Op::ListFiles => lib::print_all_files(),
         args::Op::About => about()
         
     }
