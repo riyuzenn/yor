@@ -17,7 +17,27 @@ yor get hello
 
 # get the value of all keys
 yor list-keys
+
+# v0.0.2 now support different files
+yor set image ~/Downloads/image.png --type image/png
+
+# Binaries
+yor set yorbin ~/.local/bin/yor --type file/bin
+
+# To extract the file / images:
+yor get image
+# /home/zenn/.yor/files/image.png
+
+yor get yorbin
+# /home/zenn/.yor/files/yorbin
 ```
+
+## Whats New~! :label: **v0.0.2**
+> Status: not yet released
+- Files are now supported such as **image**, **video**, and **files**
+- Added new commands such as **clear**, **list-files** & more
+- Improve serializing method. use **YorData** struct instead
+
 
 ## Features
 Here are some notable features on why Yor is a better option
