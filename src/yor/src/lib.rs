@@ -163,14 +163,16 @@ pub fn get_password(prompt: &str) -> String {
     rpassword::prompt_password(prompt).unwrap()
 }
 
-pub fn load_db(path: &Path) -> PickleDb {
+pub fn load_db(path: &Path) -> Result<PickleDb> {
+    /*
     if !path.exists() {
         create_db(&path.to_str().unwrap());
     }
+    */
     PickleDb::load_json(
         path, 
         PickleDbDumpPolicy::AutoDump
-    ).unwrap()
+    ).with_context(|| "Database not found. Consider creating using `create`")
 }
 
 fn init_config_db() {
@@ -179,7 +181,11 @@ fn init_config_db() {
 
     if !env.join("config").as_path().exists() {
 
-        let mut db = load_db(env.join("config").as_path());
+        let mut db = load_db(env.join("config").as_path()).unwrap_or_else(|_| {
+            println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));
+
+            std::process::exit(1);
+        });
         db.set("db_name", &String::from("default")).unwrap();
         db.set("file_env", &String::from(
             env.join("files")
@@ -210,7 +216,10 @@ pub fn initialize_env() -> Result<()> {
 pub fn get_config_data() -> PickleDb {
     let home = dirs::home_dir().unwrap();
     let cfg_path = home.as_path().join(".yor").join("config");
-    load_db(cfg_path.as_path())
+    load_db(cfg_path.as_path()).unwrap_or_else(|_| {
+        println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));
+        std::process::exit(1);
+    })
 }
 
 /// Get the db path from the environment given the name
@@ -341,7 +350,10 @@ pub fn upsert_item(
         std::process::exit(1);
     }
 
-    let mut db: PickleDb = load_db(&get_db_path(&db_name));
+    let mut db: PickleDb = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
+        println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));        
+        std::process::exit(1);
+    });
 
     // Set the Data to DataEnum that has 2 types, Vec<u8> and String since
     // I have no idea how to mutate types in rust.
@@ -391,7 +403,10 @@ pub fn get_item(db_name: String, key: String) -> String {
         "file",
         "image"
     ];
-    let db: PickleDb = load_db(&get_db_path(&db_name));
+    let db: PickleDb = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
+        println!("Database not found. Consider creating using `create`");
+        std::process::exit(1);
+    });
     let exists = db.exists(&key);
 
     let mut data = String::from("");
@@ -465,13 +480,18 @@ pub fn get_item(db_name: String, key: String) -> String {
 
 /// Remove the given key
 pub fn rem_item(db_name: &str, key: &str) -> Result<()> {
-    let mut db: PickleDb = load_db(&get_db_path(&db_name));
+    let mut db = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
+        println!("Database not found. Consider creating using `create`");
+        std::process::exit(1);
+    });
+    
+
     let exists = db.exists(&key);
     if !exists {
         println!("Key {} Not found, perhaps it deosn't exist at all?", key);
         std::process::exit(1);
     }
-    db.rem(&key).unwrap();
+    db.rem(&key)?;
     Ok(())
     
 }

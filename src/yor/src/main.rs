@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2022-present riyuzenn
  *
- *  This progr&am is free software: you can redistribute it and/or modify
+ *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
@@ -36,12 +36,16 @@ fn main() {
         }
         args::Op::Set(v) => {
             let db = lib::get_config_data();
-            let db_name = db.get::<String>("db_name").unwrap();
+            let mut db_name = db.get::<String>("db_name").unwrap();
             let mut pwd = db.get::<String>("db_key").unwrap_or(String::from(""));
             let r#type = v.r#type.unwrap_or("data/str".to_string());
             if pwd  == "" && !v.no_password {
                 pwd = lib::get_password("[yor] password to be set: ");
             }
+            if !v.db.is_none() {
+                db_name = v.db.unwrap();
+            }
+            
             lib::upsert_item(db_name, pwd, v.key, v.value, r#type);
         }
         args::Op::SetDb(v) => {
@@ -101,10 +105,17 @@ fn main() {
             fs::remove_dir_all(dir.clone()).unwrap();
             fs::create_dir_all(dir).unwrap();
         },
-        args::Op::ListKeys => {
+        args::Op::ListKeys(v) => {
             let conf = lib::get_config_data();
-            let db_name = conf.get::<String>("db_name").unwrap();
-            let db = lib::load_db(&lib::get_db_path(db_name.as_str()));
+            let mut db_name = conf.get::<String>("db_name").unwrap();
+            if !v.db.is_none() {
+                db_name = v.db.unwrap();
+            }
+
+            let db = lib::load_db(&lib::get_db_path(db_name.as_str())).unwrap_or_else(|_| {
+                println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));
+                std::process::exit(1);
+            });
 
             for key in db.get_all() {
                 let db = db.get::<lib::YorData>(&key).unwrap();
@@ -113,7 +124,8 @@ fn main() {
                     data_type = "password protected".to_string();
                 }
                 println!("{} ({})", key.truecolor(172, 138, 172), data_type.truecolor(172, 169, 138));
-            }    
+            }  
+             
         },
         args::Op::ListDb => lib::print_all_db(),
         args::Op::ListFiles => lib::print_all_files(),
