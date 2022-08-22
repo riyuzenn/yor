@@ -198,12 +198,19 @@ pub fn initialize_env() -> Result<()> {
     let home = dirs::home_dir().unwrap();
     let env = home.as_path().join(".yor");
     let db_path = env.as_path().join("db");
+    let default_db = db_path.as_path().join("default");
     let file_path = env.as_path().join("files");
 
     fs::create_dir_all(env).unwrap();
     fs::create_dir_all(db_path).unwrap();
     fs::create_dir_all(file_path).unwrap();
     init_config_db();
+
+    // Initialize default db
+    
+    load_db(&default_db).unwrap_or_else(|_| {
+        create_db(&default_db.to_str().unwrap())
+    });
 
     Ok(())
 }
