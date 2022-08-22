@@ -150,13 +150,13 @@ pub struct YorData {
     pub y_type: String
 }
 
-pub fn create_db(path: &str) {
+pub fn create_db(path: &str) -> PickleDb {
 
     PickleDb::new(
         path, 
         PickleDbDumpPolicy::AutoDump,
         SerializationMethod::Json
-    );
+    )
 }
 
 pub fn get_password(prompt: &str) -> String {
@@ -181,11 +181,10 @@ fn init_config_db() {
 
     if !env.join("config").as_path().exists() {
 
-        let mut db = load_db(env.join("config").as_path()).unwrap_or_else(|_| {
-            println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));
-
-            std::process::exit(1);
+        let mut db = load_db(env.join("config").as_path()).unwrap_or_else(|_| { 
+            create_db(env.join("config").to_str().unwrap())
         });
+
         db.set("db_name", &String::from("default")).unwrap();
         db.set("file_env", &String::from(
             env.join("files")
