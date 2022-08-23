@@ -1,6 +1,6 @@
 /*
  *
- *  copyright (c) 2022-present riyuzenn
+ *  Copyright (c) 2022-present riyuzenn
  *
  *  this program is free software: you can redistribute it and/or modify
  *  it under the terms of the gnu general public license as published by
@@ -164,11 +164,6 @@ pub fn get_password(prompt: &str) -> String {
 }
 
 pub fn load_db(path: &Path) -> Result<PickleDb> {
-    /*
-    if !path.exists() {
-        create_db(&path.to_str().unwrap());
-    }
-    */
     PickleDb::load_json(
         path, 
         PickleDbDumpPolicy::AutoDump
@@ -215,7 +210,7 @@ pub fn initialize_env() -> Result<()> {
     Ok(())
 }
 
-/// Get the cpnfig data.
+/// Get the config data.
 /// # Return (tuple)
 /// - `key` - The password key of the given database
 /// - `db_name` - The name of the database stored
