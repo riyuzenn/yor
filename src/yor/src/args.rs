@@ -17,15 +17,14 @@
  *
 */
 
-use clap::{
-    Args,
-    Parser,
-    Subcommand
-};
-
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[clap(name = "Yor", version, about = "Secure personal Key-Value storage system")]
+#[clap(
+    name = "Yor",
+    version,
+    about = "Secure personal Key-Value storage system"
+)]
 #[clap(propagate_version = true)]
 pub struct YorParser {
     #[clap(subcommand)]
@@ -59,11 +58,9 @@ pub struct SetCommand {
     pub no_password: bool,
     #[clap(short, long)]
     pub r#type: Option<String>,
-    
-    
+
     #[clap(short, long)]
     pub db: Option<String>,
-    
 }
 
 #[derive(Debug, Args)]
@@ -77,7 +74,6 @@ pub struct GetCommand {
 pub struct SetDbCommand {
     // The name of the database
     pub name: String,
-    
 }
 
 #[derive(Debug, Args)]
@@ -85,7 +81,6 @@ pub struct SetDbCommand {
 pub struct RemCommand {
     // The key to be remove
     pub key: String,
-    
 }
 
 #[derive(Debug, Args)]
@@ -93,7 +88,6 @@ pub struct RemCommand {
 pub struct CreateCommand {
     // The name of the database
     pub name: String,
-    
 }
 
 #[derive(Debug, Args)]
@@ -101,7 +95,6 @@ pub struct CreateCommand {
 pub struct DeleteCommand {
     // The name of the database
     pub name: String,
-
 }
 
 #[derive(Debug, Args)]
@@ -114,5 +107,5 @@ pub struct ClearCommand {
 #[clap(about = "List all keys avaialable from the database")]
 pub struct ListKeysCommand {
     #[clap(short, long)]
-    pub db: Option<String>
+    pub db: Option<String>,
 }

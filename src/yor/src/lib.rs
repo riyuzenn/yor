@@ -17,25 +17,18 @@
  *
 */
 
-use pickledb::{
-    PickleDb,
-    PickleDbDumpPolicy,
-    SerializationMethod
-};
+use anyhow::{bail, ensure, Context, Result};
+use base64;
+use colored::Colorize;
 use dirs;
-use serde::{Serialize, Deserialize};
-use std::path::{
-    Path,
-    PathBuf
-};
-use std::fs;
-use rpassword;
-use anyhow::{Result, Context, bail, ensure};
 use getrandom;
 use orion::aead::SecretKey;
-use colored::Colorize;
-use base64;
+use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
 use rand::Rng;
+use rpassword;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 #[allow(dead_code)]
 fn nonce() -> Result<[u8; 24]> {
@@ -45,7 +38,7 @@ fn nonce() -> Result<[u8; 24]> {
 }
 
 /// Get a SecretKey that will be used to encrypt/decrypt the data
-/// 
+///
 /// # Arguments
 /// - `password` - The password used to encrypt/decrypt the data
 /// - `salt` - The salt used to strengthen the encryption
@@ -61,20 +54,20 @@ fn get_key_from_password(password: &str, salt: &[u8]) -> Result<SecretKey> {
     Ok(key)
 }
 
-/// Encrypts the plaintext with the given password and returns the ciphertext. The nonce is generated at each call to strengthen the encryption. 
-/// Otherwise there's a chance the key is weakened if the same nonce is used. 
-/// The nonce is 24 byte (following the XCHACHA_NONCESIZE property). 
+/// Encrypts the plaintext with the given password and returns the ciphertext. The nonce is generated at each call to strengthen the encryption.
+/// Otherwise there's a chance the key is weakened if the same nonce is used.
+/// The nonce is 24 byte (following the XCHACHA_NONCESIZE property).
 /// The ciphertext will be 40 bytes longer than the plaintext because of the XCHACHA_NONCESIZE + POLY1305_OUTSIZE size.
-/// 
+///
 /// ## Format
-/// 
+///
 /// {0,24: nonce} {24,: ciphertext} ...
-/// 
+///
 /// ## Arguments
 /// - `plaintext`: The plaintext to encrypt
 /// - `password`: The password to use for the encryption
 /// - `salt`: The salt to use for the encryption
-/// 
+///
 /// ## Returns
 /// The ciphertext
 pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result<Vec<u8>> {
@@ -91,13 +84,17 @@ pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result
     // Get high-level API key
     let key = get_key_from_password(password, &nonce)?;
     // Convert high-level API key to low-level API key
-    let key = XSecretKey::from_slice(key.unprotected_as_bytes()).with_context(|| "Key is invalid")?;
+    let key =
+        XSecretKey::from_slice(key.unprotected_as_bytes()).with_context(|| "Key is invalid")?;
 
     // Create a Nonce struct from the generated nonce
     let nonce = Nonce::from_slice(&nonce).with_context(|| "Nonce is too short")?;
 
     // Get the output length
-    let output_len = match plaintext.len().checked_add(XCHACHA_NONCESIZE + POLY1305_OUTSIZE) {
+    let output_len = match plaintext
+        .len()
+        .checked_add(XCHACHA_NONCESIZE + POLY1305_OUTSIZE)
+    {
         Some(min_output_len) => min_output_len,
         None => bail!("Plaintext is too long"),
     };
@@ -107,19 +104,24 @@ pub fn encrypt(plaintext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result
     output[..XCHACHA_NONCESIZE].copy_from_slice(nonce.as_ref());
 
     // Encrypt the plaintext and add it to the end of output buffer
-    seal(&key, &nonce, plaintext, None, &mut output[XCHACHA_NONCESIZE..])
-        .with_context(|| "Could not convert key")?;
+    seal(
+        &key,
+        &nonce,
+        plaintext,
+        None,
+        &mut output[XCHACHA_NONCESIZE..],
+    )
+    .with_context(|| "Could not convert key")?;
 
     Ok(output)
 }
 
-
-/// Decrypts the ciphertext with the given password and returns the plaintext. 
-/// 
+/// Decrypts the ciphertext with the given password and returns the plaintext.
+///
 /// ## Arguments
 /// - `ciphertext`: The ciphertext to decrypt
 /// - `password`: The password to use for the decryption
-/// 
+///
 /// ## Returns
 /// The plaintext as bytes
 pub fn decrypt(ciphertext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Result<Vec<u8>> {
@@ -129,33 +131,33 @@ pub fn decrypt(ciphertext: impl AsRef<[u8]>, password: impl AsRef<str>) -> Resul
     let ciphertext = ciphertext.as_ref();
     let password = password.as_ref();
 
-    ensure!(ciphertext.len() > XCHACHA_NONCESIZE, "Ciphertext is too short");
+    ensure!(
+        ciphertext.len() > XCHACHA_NONCESIZE,
+        "Ciphertext is too short"
+    );
 
-    // Get the key from the password and salt 
+    // Get the key from the password and salt
     let key = get_key_from_password(password, &ciphertext[..XCHACHA_NONCESIZE])?;
     open(&key, ciphertext).with_context(|| "Invalid key password")
 }
-
-
 
 /// Data enum for handling data types
 #[derive(Serialize, Deserialize)]
 pub enum YorDataType {
     Bytes(Vec<u8>),
-    Str(String)
+    Str(String),
 }
 #[derive(Serialize, Deserialize)]
 pub struct YorData {
     pub y_data: YorDataType,
-    pub y_type: String
+    pub y_type: String,
 }
 
 pub fn create_db(path: &str) -> PickleDb {
-
     PickleDb::new(
-        path, 
+        path,
         PickleDbDumpPolicy::AutoDump,
-        SerializationMethod::Json
+        SerializationMethod::Json,
     )
 }
 
@@ -164,28 +166,23 @@ pub fn get_password(prompt: &str) -> String {
 }
 
 pub fn load_db(path: &Path) -> Result<PickleDb> {
-    PickleDb::load_json(
-        path, 
-        PickleDbDumpPolicy::AutoDump
-    ).with_context(|| "Database not found. Consider creating using `create`")
+    PickleDb::load_json(path, PickleDbDumpPolicy::AutoDump)
+        .with_context(|| "Database not found. Consider creating using `create`")
 }
 
 fn init_config_db() {
-    let env = dirs::home_dir().unwrap()
-        .as_path().join(".yor");
+    let env = dirs::home_dir().unwrap().as_path().join(".yor");
 
     if !env.join("config").as_path().exists() {
-
-        let mut db = load_db(env.join("config").as_path()).unwrap_or_else(|_| { 
-            create_db(env.join("config").to_str().unwrap())
-        });
+        let mut db = load_db(env.join("config").as_path())
+            .unwrap_or_else(|_| create_db(env.join("config").to_str().unwrap()));
 
         db.set("db_name", &String::from("default")).unwrap();
-        db.set("file_env", &String::from(
-            env.join("files")
-                .to_str()
-                .unwrap())
-        ).unwrap();
+        db.set(
+            "file_env",
+            &String::from(env.join("files").to_str().unwrap()),
+        )
+        .unwrap();
     }
 }
 
@@ -202,10 +199,8 @@ pub fn initialize_env() -> Result<()> {
     init_config_db();
 
     // Initialize default db
-    
-    load_db(&default_db).unwrap_or_else(|_| {
-        create_db(&default_db.to_str().unwrap())
-    });
+
+    load_db(&default_db).unwrap_or_else(|_| create_db(&default_db.to_str().unwrap()));
 
     Ok(())
 }
@@ -218,13 +213,16 @@ pub fn get_config_data() -> PickleDb {
     let home = dirs::home_dir().unwrap();
     let cfg_path = home.as_path().join(".yor").join("config");
     load_db(cfg_path.as_path()).unwrap_or_else(|_| {
-        println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));
+        println!(
+            "{}",
+            "Database not found. Consider creating using `create`".truecolor(157, 123, 125)
+        );
         std::process::exit(1);
     })
 }
 
 /// Get the db path from the environment given the name
-/// 
+///
 /// # Arguments
 /// - `name` - The name of the database
 pub fn get_db_path(name: &str) -> PathBuf {
@@ -244,27 +242,16 @@ pub fn print_all_db() {
 
     if let Ok(entries) = fs::read_dir(db_path) {
         for entry in entries {
-            if let Ok(entry) = entry {                
-                
-                let mut db_name = String::from(
-                    entry.file_name()
-                        .to_str()
-                        .unwrap()
-                );
+            if let Ok(entry) = entry {
+                let mut db_name = String::from(entry.file_name().to_str().unwrap());
                 if db_name == default_db_name {
-                    db_name.push_str(
-                        &" (current)".truecolor(164, 141, 110)
-                        .to_string()
-                    );
-                    
+                    db_name.push_str(&" (current)".truecolor(164, 141, 110).to_string());
+
                     // db_name += &" (current)".truecolor(164, 141, 110).to_string();
-                    
                 }
                 println!("{}", db_name.truecolor(172, 138, 172));
-                
             }
         }
-        
     }
 }
 /// Print all the files that can be found from the environment
@@ -275,76 +262,51 @@ pub fn print_all_files() {
 
     if let Ok(entries) = fs::read_dir(db_path) {
         for entry in entries {
-            if let Ok(entry) = entry {                
-                
-                let filename = String::from(
-                    entry.file_name()
-                        .to_str()
-                        .unwrap()
-                );
-            
+            if let Ok(entry) = entry {
+                let filename = String::from(entry.file_name().to_str().unwrap());
+
                 println!("{}", filename.truecolor(172, 138, 172));
-                
             }
         }
-        
     }
 }
 
-
 fn encrypt_file(path: &str, key: &str) -> Vec<u8> {
     let data = fs::read(Path::new(path)).unwrap();
-    encrypt(base64::encode(data), key).unwrap()   
+    encrypt(base64::encode(data), key).unwrap()
 }
 fn write_file(path: &str, data: String) -> Result<()> {
     let path = Path::new(path);
     let raw = base64::decode(data).unwrap();
     fs::write(path, raw).with_context(|| "Cannot write the file")?;
     Ok(())
-
 }
 #[allow(dead_code)] // for future use
-fn gen_random(len: usize) -> String {   
-    rand::thread_rng() 
+fn gen_random(len: usize) -> String {
+    rand::thread_rng()
         .sample_iter::<char, _>(rand::distributions::Standard)
         .take(len)
         .collect()
-     
 }
 #[allow(dead_code)] // for future use
 fn generate_file_session(filename: &str) -> String {
     let random = gen_random(5);
     format!("{0}-{1}", filename, random).to_string()
-} 
+}
 fn split_type(string: &str) -> Vec<&str> {
     string.split("/").collect()
 }
 
 /// Update or insert the given item
-/// 
+///
 /// # Arguments
 /// - `db_name` - The name of the database (default)
 /// - `password` - The password used to encrypt/decrypt the data
 /// - `key` - The given key for the value to store
 /// - `value` - The given value for the key to store
-pub fn upsert_item(
-    db_name: String, 
-    password: String, 
-    key: String, 
-    value: String,
-    r#type: String) {
-    
-    let supported_types = [
-        "image",
-        "video",
-        "file",
-        "data"
-    ];
-    let file_types = [
-        "video",
-        "file",
-        "image"
-    ];
+pub fn upsert_item(db_name: String, password: String, key: String, value: String, r#type: String) {
+    let supported_types = ["image", "video", "file", "data"];
+    let file_types = ["video", "file", "image"];
     if !supported_types.iter().any(|&i| i == split_type(&r#type)[0]) {
         println!("{}", r#type);
         println!("Data type is not supported");
@@ -352,21 +314,23 @@ pub fn upsert_item(
     }
 
     let mut db: PickleDb = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
-        println!("{}", "Database not found. Consider creating using `create`".truecolor(157, 123, 125));        
+        println!(
+            "{}",
+            "Database not found. Consider creating using `create`".truecolor(157, 123, 125)
+        );
         std::process::exit(1);
     });
 
     // Set the Data to DataEnum that has 2 types, Vec<u8> and String since
     // I have no idea how to mutate types in rust.
     let mut data = YorDataType::Str(value.clone());
-    let mut  _type = r#type;
-    if password  != "" {
+    let mut _type = r#type;
+    if password != "" {
         data = YorDataType::Bytes(encrypt(value.clone(), password.clone()).unwrap());
         if split_type(&_type)[1] == "str" {
             _type = String::from("data/byte");
         }
-        
-    } 
+    }
     /*
     match data {
         YorDataType::Bytes(d) => db.set(&key, &d).unwrap(),
@@ -374,9 +338,9 @@ pub fn upsert_item(
     }
     */
 
-    let mut yordata = YorData { 
+    let mut yordata = YorData {
         y_data: data,
-        y_type: _type.clone()
+        y_type: _type.clone(),
     };
     if file_types.iter().any(|&i| i == split_type(&_type)[0]) {
         if password != "" {
@@ -386,24 +350,17 @@ pub fn upsert_item(
         yordata.y_data = YorDataType::Str(base64::encode(d));
     }
     db.set(&key, &yordata).unwrap();
-   
 }
 
-
 /// Get the value of the given key with the password to decrypt the data
-/// 
+///
 /// # Arguments
 /// - `db_name` - The name of the database (default)
 /// - `password` - The password used to encrypt/decrypt the data
 /// - `key` - The given key for the value to get
 #[allow(unused_assignments)]
 pub fn get_item(db_name: String, key: String) -> String {
-    
-    let file_types = [
-        "video",
-        "file",
-        "image"
-    ];
+    let file_types = ["video", "file", "image"];
     let db: PickleDb = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
         println!("Database not found. Consider creating using `create`");
         std::process::exit(1);
@@ -413,7 +370,7 @@ pub fn get_item(db_name: String, key: String) -> String {
     let mut data = String::from("");
     let mut raw = YorDataType::Str(String::from(""));
     let mut y_type = String::from("data/str");
-    
+
     if exists {
         let yor = db.get::<YorData>(&key).unwrap();
         raw = yor.y_data;
@@ -422,54 +379,55 @@ pub fn get_item(db_name: String, key: String) -> String {
     let splitted_type = split_type(&y_type);
     let configdb = get_config_data();
     let pathstr = configdb.get::<String>("file_env").unwrap();
-    let mut path = Path::new(&pathstr)
-        .join(format!("{}.{}", &key, splitted_type[1]));
-    
+    let mut path = Path::new(&pathstr).join(format!("{}.{}", &key, splitted_type[1]));
+
     if splitted_type[1] == "bin" {
-        path = Path::new(&pathstr)
-            .join(&key);
+        path = Path::new(&pathstr).join(&key);
     }
 
     match raw {
         YorDataType::Bytes(d) => {
-             
             let mut tries = 1;
             let mut password = get_password("[yor] password for the key: ");
-            
+
             let decrypted_data = decrypt(d, password);
-            
+
             // Get the key three times, if it fails then exit
             while !decrypted_data.is_ok() {
-                println!("{}", "Password is invalid. Pleae try again".truecolor(157, 123, 125));
+                println!(
+                    "{}",
+                    "Password is invalid. Pleae try again".truecolor(157, 123, 125)
+                );
                 password = get_password("[yor] password for the key: ");
-     
-                tries += 1; 
+
+                tries += 1;
                 if tries >= 3 {
-                    println!("{}", "Woah, chill out. Are you sure the password is correct?.".truecolor(157, 123, 125));
+                    println!(
+                        "{}",
+                        "Woah, chill out. Are you sure the password is correct?."
+                            .truecolor(157, 123, 125)
+                    );
                     std::process::exit(1);
                 }
-
             }
-           
-            println!("{:?}", splitted_type); 
+
+            println!("{:?}", splitted_type);
             if file_types.iter().any(|&i| i == splitted_type[0]) {
                 // writing the file
-                              
+
                 write_file(
-                    path.to_str().unwrap(), 
-                    String::from_utf8(decrypted_data.unwrap()).unwrap()
-                ).unwrap();
+                    path.to_str().unwrap(),
+                    String::from_utf8(decrypted_data.unwrap()).unwrap(),
+                )
+                .unwrap();
                 data = String::from(path.to_str().unwrap());
             } else {
                 data = String::from_utf8(decrypted_data.unwrap()).unwrap();
-            } 
-        },
+            }
+        }
         YorDataType::Str(d) => {
             if file_types.iter().any(|&i| i == splitted_type[0]) {
-                write_file(
-                    &path.to_str().unwrap(),
-                    d
-                ).unwrap();
+                write_file(&path.to_str().unwrap(), d).unwrap();
                 data = String::from(path.to_str().unwrap());
             } else {
                 data = d;
@@ -485,7 +443,6 @@ pub fn rem_item(db_name: &str, key: &str) -> Result<()> {
         println!("Database not found. Consider creating using `create`");
         std::process::exit(1);
     });
-    
 
     let exists = db.exists(&key);
     if !exists {
@@ -494,5 +451,4 @@ pub fn rem_item(db_name: &str, key: &str) -> Result<()> {
     }
     db.rem(&key)?;
     Ok(())
-    
 }
