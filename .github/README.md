@@ -16,9 +16,9 @@ yor set secret key --no-password
 yor get hello 
 
 # get the value of all keys
-yor list-keys
+yor ls
 
-# v0.0.2 now support different files
+# v0.0.2 now support different files. --type format: <supported_type>/<extension>
 yor set image ~/Downloads/image.png --type image/png
 
 # Binaries
@@ -33,7 +33,7 @@ yor get yorbin
 ```
 
 ## Whats New~! :label: **v0.0.2**
-> Status: not yet released
+> Status: released
 - Files are now supported such as **image**, **video**, and **files**
 - Added new commands such as **clear**, **list-files** & more
 - Improve serializing method. use **YorData** struct instead
