@@ -32,12 +32,6 @@ yor get yorbin
 # /home/zenn/.yor/files/yorbin
 ```
 
-## Whats New~! :label: **v0.0.2**
-> Status: released
-- Files are now supported such as **image**, **video**, and **files**
-- Added new commands such as **clear**, **list-files** & more
-- Improve serializing method. use **YorData** struct instead
-
 
 ## Features
 Here are some notable features on why Yor is a better option
