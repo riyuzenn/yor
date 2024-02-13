@@ -22,35 +22,48 @@ use colored::Colorize;
 use dialoguer::Confirm;
 use std::fs;
 mod args;
-mod lib;
+mod yor;
 
 fn main() {
-    lib::initialize_env().unwrap();
+    yor::initialize_env().unwrap();
     let a: args::YorParser = args::YorParser::parse();
     match a.command {
         args::Op::Get(v) => {
-            let conf = lib::get_config_data();
+            let conf = yor::get_config_data();
             let db_name = conf.get::<String>("db_name").unwrap();
-            let data = lib::get_item(db_name, v.key);
+            let data = yor::get_item(db_name, v.key, v.out);
             println!("{}", data.truecolor(138, 172, 171));
         }
         args::Op::Set(v) => {
-            let db = lib::get_config_data();
+            let db = yor::get_config_data();
             let mut db_name = db.get::<String>("db_name").unwrap();
             let mut pwd = db.get::<String>("db_key").unwrap_or(String::from(""));
             let r#type = v.r#type.unwrap_or("data/str".to_string());
             if pwd == "" && !v.no_password {
-                pwd = lib::get_password("[yor] password to be set: ");
+                let _pwd = yor::get_password("[yor] password to be set: ");
+                if _pwd != "" {
+                    let _confirm_pwd = yor::get_password("[yor] confirm password: ");
+                    if _pwd == _confirm_pwd {
+                        pwd = _pwd
+                    } else {
+                        println!("{}", "Password does not match.".truecolor(157, 123, 125));
+                        std::process::exit(1);
+                    }
+                } else {
+
+                    pwd = _pwd
+
+                }
             }
             if !v.db.is_none() {
                 db_name = v.db.unwrap();
             }
 
-            lib::upsert_item(db_name, pwd, v.key, v.value, r#type);
+            yor::upsert_item(db_name, pwd, v.key, v.value, r#type);
         }
         args::Op::SetDb(v) => {
-            let mut db = lib::get_config_data();
-            let path = lib::get_db_path(v.name.as_str());
+            let mut db = yor::get_config_data();
+            let path = yor::get_db_path(v.name.as_str());
 
             if !path.exists() {
                 println!(
@@ -67,12 +80,31 @@ fn main() {
             );
         }
         args::Op::Rem(v) => {
-            let db = lib::get_config_data();
+            let db = yor::get_config_data();
             let db_name = db.get::<String>("db_name").unwrap();
-            lib::rem_item(&db_name, &v.key).unwrap();
+            if Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to remove: {}? (action can't be undone)",
+                    v.key
+                ))
+                .interact()
+                .unwrap()
+            {
+                yor::rem_item(&db_name, &v.key).unwrap();
+                println!(
+                    "Key: {} from Database: {} is successfully removed.", 
+                    v.key.truecolor(172, 138, 140),
+                    db_name.truecolor(172,138,140)
+                );
+            } else {
+                println!(
+                    "{}",
+                    "Ignoring the key removal request.".truecolor(172, 138, 140)
+                );
+            }
         }
         args::Op::Delete(v) => {
-            let path = lib::get_db_path(v.name.as_str());
+            let path = yor::get_db_path(v.name.as_str());
 
             if !path.exists() {
                 println!(
@@ -100,7 +132,7 @@ fn main() {
             }
         }
         args::Op::Create(v) => {
-            let path = lib::get_db_path(v.name.as_str());
+            let path = yor::get_db_path(v.name.as_str());
             if path.exists() {
                 println!(
                     "It looks like database: {} is already created.",
@@ -108,7 +140,7 @@ fn main() {
                 );
                 std::process::exit(1);
             }
-            lib::create_db(path.to_str().unwrap());
+            yor::create_db(path.to_str().unwrap());
         }
         args::Op::Clear(v) => {
             let env = dirs::home_dir().unwrap().as_path().join(".yor");
@@ -122,14 +154,14 @@ fn main() {
             fs::remove_dir_all(dir.clone()).unwrap();
             fs::create_dir_all(dir).unwrap();
         }
-        args::Op::ListKeys(v) => {
-            let conf = lib::get_config_data();
+        args::Op::Ls(v) => {
+            let conf = yor::get_config_data();
             let mut db_name = conf.get::<String>("db_name").unwrap();
             if !v.db.is_none() {
                 db_name = v.db.unwrap();
             }
 
-            let db = lib::load_db(&lib::get_db_path(db_name.as_str())).unwrap_or_else(|_| {
+            let db = yor::load_db(&yor::get_db_path(db_name.as_str())).unwrap_or_else(|_| {
                 println!(
                     "{}",
                     "Database not found. Consider creating using `create`".truecolor(157, 123, 125)
@@ -138,7 +170,7 @@ fn main() {
             });
 
             for key in db.get_all() {
-                let db = db.get::<lib::YorData>(&key).unwrap();
+                let db = db.get::<yor::YorData>(&key).unwrap();
                 let mut data_type = db.y_type;
                 if data_type == "bytes" {
                     data_type = "password protected".to_string();
@@ -150,8 +182,8 @@ fn main() {
                 );
             }
         }
-        args::Op::ListDb => lib::print_all_db(),
-        args::Op::ListFiles => lib::print_all_files(),
+        args::Op::LsDb => yor::print_all_db(),
+        args::Op::LsFile => yor::print_all_files(),
         args::Op::About => about(),
     }
 }

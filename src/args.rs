@@ -36,14 +36,14 @@ pub enum Op {
     #[clap(about = "Information about the app.")]
     About,
     #[clap(about = "List all database avaialable")]
-    ListDb,
+    LsDb,
     #[clap(about = "List all files avaialable from the file environment")]
-    ListFiles,
+    LsFile,
     Set(SetCommand),
     Get(GetCommand),
     Rem(RemCommand),
     SetDb(SetDbCommand),
-    ListKeys(ListKeysCommand),
+    Ls(ListKeysCommand),
     Create(CreateCommand),
     Delete(DeleteCommand),
     Clear(ClearCommand),
@@ -67,6 +67,8 @@ pub struct SetCommand {
 #[clap(about = "Get the value of a given key")]
 pub struct GetCommand {
     pub key: String,
+    #[clap(short, long)]
+    pub out: Option<String>,
 }
 
 #[derive(Debug, Args)]

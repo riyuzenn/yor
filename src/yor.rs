@@ -359,7 +359,7 @@ pub fn upsert_item(db_name: String, password: String, key: String, value: String
 /// - `password` - The password used to encrypt/decrypt the data
 /// - `key` - The given key for the value to get
 #[allow(unused_assignments)]
-pub fn get_item(db_name: String, key: String) -> String {
+pub fn get_item(db_name: String, key: String, out: Option<String>) -> String {
     let file_types = ["video", "file", "image"];
     let db: PickleDb = load_db(&get_db_path(&db_name)).unwrap_or_else(|_| {
         println!("Database not found. Consider creating using `create`");
@@ -378,12 +378,17 @@ pub fn get_item(db_name: String, key: String) -> String {
     }
     let splitted_type = split_type(&y_type);
     let configdb = get_config_data();
+    
     let pathstr = configdb.get::<String>("file_env").unwrap();
     let mut path = Path::new(&pathstr).join(format!("{}.{}", &key, splitted_type[1]));
-
+    
     if splitted_type[1] == "bin" {
         path = Path::new(&pathstr).join(&key);
     }
+
+    if let Some(o) = out {
+        path = Path::new(&o).to_path_buf();
+    } 
 
     match raw {
         YorDataType::Bytes(d) => {
@@ -404,7 +409,7 @@ pub fn get_item(db_name: String, key: String) -> String {
                 if tries >= 3 {
                     println!(
                         "{}",
-                        "Woah, chill out. Are you sure the password is correct?."
+                        "Failed after 3 attempts. Are you sure the password is correct?."
                             .truecolor(157, 123, 125)
                     );
                     std::process::exit(1);
