@@ -182,6 +182,7 @@ fn main() {
                 );
             }
         }
+        args::Op::LoadEnv => yor::load_env(),
         args::Op::LsDb => yor::print_all_db(),
         args::Op::LsFile => yor::print_all_files(),
         args::Op::About => about(),
