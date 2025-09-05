@@ -39,6 +39,8 @@ pub enum Op {
     LsDb,
     #[clap(about = "List all files avaialable from the file environment")]
     LsFile,
+    #[clap(about = "Load all keys from the current database into environment variable")]
+    LoadEnv,
     Set(SetCommand),
     Get(GetCommand),
     Rem(RemCommand),
@@ -47,6 +49,7 @@ pub enum Op {
     Create(CreateCommand),
     Delete(DeleteCommand),
     Clear(ClearCommand),
+    
 }
 
 #[derive(Debug, Args)]
