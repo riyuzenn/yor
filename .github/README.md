@@ -32,11 +32,8 @@ yor get yorbin
 # /home/zenn/.yor/files/yorbin
 ```
 
-
 ## Features
 Here are some notable features on why Yor is a better option
-- No tracking involved
 - 100% open-sourced
 - Use symmetric encryption to avoid several data breaching
-- Blazingly fast (it's written in Rust tho)
 - Optimized for privacy & security
